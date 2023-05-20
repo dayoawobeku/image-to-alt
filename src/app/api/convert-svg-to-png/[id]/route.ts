@@ -8,9 +8,8 @@ export async function GET(
     params: {id: string};
   },
 ) {
-  console.log(params, 'paranranahasyshab');
   const response = await fetch(
-    'https://api.cloudconvert.com/v2/jobs/' + params.id,
+    `https://api.cloudconvert.com/v2/jobs/${params.id}`,
     {
       headers: {
         Authorization: `Bearer ${process.env.NEXT_PUBLIC_CLOUDCONVERT_API_TOKEN}`,

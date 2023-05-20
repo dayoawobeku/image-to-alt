@@ -3,3 +3,10 @@ export interface Prediction {
   output: string;
   id: string;
 }
+
+export interface Task {
+    name: string;
+    result: {
+      files: {url: string}[];
+    };
+  }

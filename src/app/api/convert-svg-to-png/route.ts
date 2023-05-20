@@ -1,4 +1,5 @@
 import {NextResponse} from 'next/server';
+import {MAX_FILE_SIZE_BYTES} from '@/app/constants';
 
 export async function POST(req: Request): Promise<NextResponse> {
   if (!req.body) {
@@ -16,6 +17,21 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const body = await req.json();
   const {url} = body;
+
+  // Validate file size
+  const fileSize = (url.length * 3) / 4; // Estimate base64 file size (assuming no padding)
+  if (fileSize > MAX_FILE_SIZE_BYTES) {
+    return NextResponse.json(
+      {
+        success: false,
+        alt: '',
+        message: 'File size exceeds the maximum allowed limit.',
+      },
+      {
+        status: 400,
+      },
+    );
+  }
 
   const response = await fetch('https://api.cloudconvert.com/v2/jobs', {
     method: 'POST',

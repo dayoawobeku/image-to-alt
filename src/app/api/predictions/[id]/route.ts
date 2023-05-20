@@ -20,7 +20,7 @@ export async function GET(
 
   if (response.status !== 200) {
     return NextResponse.json(
-      {error: 'Failed to create prediction'},
+      {error: 'Failed to retrieve prediction'},
       {status: 400},
     );
   }
