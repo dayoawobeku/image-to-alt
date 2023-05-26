@@ -3,18 +3,22 @@
 import {ChangeEvent, useState} from 'react';
 import Image from 'next/image';
 import {Prediction} from 'replicate';
+import {v4 as uuidv4} from 'uuid';
 import {
   MAX_FILE_SIZE_BYTES,
   convertAndPredict,
   sendPNGForPrediction,
   uploadImageToCloudinary,
 } from './constants';
+import {ExtendedPrediction} from './types';
 
 export default function Home() {
-  const [image, setImage] = useState('');
+  const [imageData, setImageData] = useState<
+    {id: string; url: string; size: number}[]
+  >([]);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [error, setError] = useState('');
-  const [svgDataUrl, setSvgDataUrl] = useState('');
+  const [conversions, setConversions] = useState<ExtendedPrediction[]>([]);
 
   const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     try {
@@ -35,15 +39,29 @@ export default function Home() {
         reader.onerror = () => reject(reader.error);
       });
 
-      setImage(base64Image);
-
       // Step 1: Upload image to Cloudinary
-      const imageUrl = await uploadImageToCloudinary(base64Image);
+      const imageProperties = await uploadImageToCloudinary(base64Image);
+      const {url, bytes} = imageProperties;
+      const imageId = uuidv4();
+      setImageData(prevImageData => [
+        ...prevImageData,
+        {id: imageId, url, size: bytes},
+      ]);
 
       // Step 2: Initiate conversion and prediction with the Cloudinary image URL
-      const result = await sendPNGForPrediction(imageUrl);
+      const result = await sendPNGForPrediction(url);
 
       // Set the prediction state
+      const extendedResult = {
+        ...result,
+        imageId,
+        image: imageProperties.url,
+        imageSize: imageProperties.bytes,
+      };
+
+      // Update the conversions array
+      setConversions(prevConversions => [...prevConversions, extendedResult]);
+
       setPrediction(result);
     } catch (error) {
       setError((error as Error).message);
@@ -65,15 +83,27 @@ export default function Home() {
 
       reader.onload = async e => {
         const svgDataUrl = e.target?.result;
-        setSvgDataUrl(svgDataUrl as string);
 
         try {
           // Upload SVG image to Cloudinary
-          const cloudinaryUrl = await uploadImageToCloudinary(
+          const imageProperties = await uploadImageToCloudinary(
             svgDataUrl as string,
           );
+          const {url, bytes} = imageProperties;
+          const imageId = uuidv4();
 
-          await convertAndPredict(cloudinaryUrl, setPrediction);
+          setImageData(prevImageData => [
+            ...prevImageData,
+            {id: imageId, url, size: bytes},
+          ]);
+
+          await convertAndPredict(
+            url,
+            setPrediction,
+            setConversions,
+            imageProperties,
+            imageId,
+          );
         } catch (error) {
           console.error('Image upload to Cloudinary failed:', error);
         }
@@ -83,36 +113,41 @@ export default function Home() {
     }
   };
 
-  return (
-    <form className="px-6 py-10">
-      <h1>Upload image below</h1>
-      <input
-        type="file"
-        accept="image/png, image/jpeg"
-        onChange={handleUpload}
-      />
-      {image ? (
-        <div className="mt-10">
-          <Image alt="image" src={image} width={300} height={300} />
-        </div>
-      ):null}
-      {error ? <div>{error}</div> : null}
-      {prediction && prediction.status === 'succeeded' ? (
-        <div className="mt-10">
-          <h2>Result</h2>
-          <div className="mt-4">
-            <div>{prediction.output}</div>
-          </div>
-        </div>
-      ):null}
+  console.log(conversions, 'saio');
+  console.log(imageData, 'imggg');
 
-      <p>SVG</p>
-      <input type="file" accept="image/svg+xml" onChange={handleFileChange} />
-      {svgDataUrl ? (
-        <div className="mt-10">
-          <Image alt="image" src={svgDataUrl} width={300} height={300} />
-        </div>
-      ): null}
-    </form>
+  return (
+    <>
+      <form className="px-6 py-10">
+        <h1>Upload image below</h1>
+        <input
+          type="file"
+          accept="image/png, image/jpeg"
+          onChange={handleUpload}
+        />
+        {error ? <div>{error}</div> : null}
+        <p>SVG</p>
+        <input type="file" accept="image/svg+xml" onChange={handleFileChange} />
+      </form>
+
+      {imageData.map(({id, url, size}) => {
+        const conversion = conversions.find(conv => conv.imageId === id);
+        return (
+          <div key={id}>
+            <Image alt="Uploaded image" src={url} width={56} height={56} />
+            <p>Size: {Math.round(size / 1000)} kb</p>
+            {conversion && conversion.status === 'succeeded' ? (
+              <p>
+                {conversion.output.startsWith('Caption: ')
+                  ? conversion.output.substring(9)
+                  : conversion.output}
+              </p>
+            ) : (
+              'loading...'
+            )}
+          </div>
+        );
+      })}
+    </>
   );
 }

@@ -1,4 +1,9 @@
 import {NextResponse} from 'next/server';
+import Replicate from 'replicate';
+
+const replicate = new Replicate({
+  auth: process.env.NEXT_PUBLIC_REPLICATE_API_TOKEN as string,
+});
 
 export async function GET(
   request: Request,
@@ -8,23 +13,13 @@ export async function GET(
     params: {id: string};
   },
 ) {
-  const response = await fetch(
-    'https://api.replicate.com/v1/predictions/' + params.id,
-    {
-      headers: {
-        Authorization: `Token ${process.env.NEXT_PUBLIC_REPLICATE_API_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-    },
-  );
+  const prediction = await replicate.predictions.get(params.id);
 
-  if (response.status !== 200) {
-    return NextResponse.json(
-      {error: 'Failed to retrieve prediction'},
-      {status: 400},
-    );
+  if (prediction?.error) {
+    return NextResponse.json({error: 'Prediction failed'}, {status: 500});
   }
 
-  const prediction = await response.json();
-  return NextResponse.json(prediction);
+  const {status, error, id, output} = prediction;
+
+  return NextResponse.json({status, error, id, output});
 }

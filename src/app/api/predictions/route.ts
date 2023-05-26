@@ -1,6 +1,10 @@
 import {NextResponse} from 'next/server';
-import {Prediction} from 'replicate';
+import Replicate from 'replicate';
 import {MAX_FILE_SIZE_BYTES} from '@/app/constants';
+
+const replicate = new Replicate({
+  auth: process.env.NEXT_PUBLIC_REPLICATE_API_TOKEN as string,
+});
 
 interface PredictionRequest {
   image: string;
@@ -38,34 +42,21 @@ export async function POST(req: Request): Promise<NextResponse> {
     );
   }
 
-  const response = await fetch('https://api.replicate.com/v1/predictions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Token ${process.env.NEXT_PUBLIC_REPLICATE_API_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      // Pinned to a specific version of Stable Diffusion
-      // See https://replicate.com/stability-ai/stable-diffussion/versions
-      version:
-        '2e1dddc8621f72155f24cf2e0adbde548458d3cab9f00c0139eea840d0ac4746',
+  const prediction = await replicate.predictions.create({
+    version: '2e1dddc8621f72155f24cf2e0adbde548458d3cab9f00c0139eea840d0ac4746',
 
-      input: {
-        model: 'blip',
-        use_beam_search: true,
-        image,
-        task: 'image_captioning',
-      },
-    }),
+    input: {
+      model: 'blip',
+      use_beam_search: true,
+      image,
+      task: 'image_captioning',
+    },
   });
 
-  if (response.status !== 201) {
-    return NextResponse.json(
-      {error: 'Failed to create prediction'},
-      {status: 500},
-    );
+  if (prediction?.error) {
+    console.error('Prediction error:', prediction.error);
+    return NextResponse.json({error: 'Prediction failed'}, {status: 500});
   }
 
-  const prediction: Prediction = await response.json();
   return NextResponse.json(prediction);
 }

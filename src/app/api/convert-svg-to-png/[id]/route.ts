@@ -9,7 +9,7 @@ export async function GET(
   },
 ) {
   const response = await fetch(
-    `https://api.cloudconvert.com/v2/jobs/${params.id}`,
+    `https://sync.api.cloudconvert.com/v2/jobs/${params.id}`,
     {
       headers: {
         Authorization: `Bearer ${process.env.NEXT_PUBLIC_CLOUDCONVERT_API_TOKEN}`,
