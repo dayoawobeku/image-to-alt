@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import './globals.css';
 import {Inter} from 'next/font/google';
 
@@ -11,7 +12,26 @@ export const metadata = {
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body
+        className={`mx-auto min-h-screen max-w-screen-xl bg-slate-950 p-6 ${inter.className}`}
+      >
+        <header className="mb-16">
+          <nav className="flex items-center justify-between">
+            <Link href="/" className="font-medium text-orange-400">
+              Alt generator
+            </Link>
+            <ul className="flex items-center gap-6">
+              <li>
+                <Link href="/">Home</Link>
+              </li>
+              <li>
+                <Link href="/learn">Learn</Link>
+              </li>
+            </ul>
+          </nav>
+        </header>
+        {children}
+      </body>
     </html>
   );
 }

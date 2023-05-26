@@ -27,7 +27,6 @@ export async function POST(req: Request): Promise<NextResponse> {
   const body: PredictionRequest = await req.json();
   const {image} = body;
 
-  // Validate file size
   const fileSize = (image.length * 3) / 4; // Estimate base64 file size (assuming no padding)
   if (fileSize > MAX_FILE_SIZE_BYTES) {
     return NextResponse.json(
@@ -42,21 +41,27 @@ export async function POST(req: Request): Promise<NextResponse> {
     );
   }
 
-  const prediction = await replicate.predictions.create({
-    version: '2e1dddc8621f72155f24cf2e0adbde548458d3cab9f00c0139eea840d0ac4746',
+  try {
+    const prediction = await replicate.predictions.create({
+      version:
+        '2e1dddc8621f72155f24cf2e0adbde548458d3cab9f00c0139eea840d0ac4746',
 
-    input: {
-      model: 'blip',
-      use_beam_search: true,
-      image,
-      task: 'image_captioning',
-    },
-  });
+      input: {
+        model: 'blip',
+        use_beam_search: true,
+        image,
+        task: 'image_captioning',
+      },
+    });
 
-  if (prediction?.error) {
-    console.error('Prediction error:', prediction.error);
+    if (prediction?.error) {
+      console.error('Prediction error:', prediction.error);
+      return NextResponse.json({error: 'Prediction failed'}, {status: 500});
+    }
+
+    return NextResponse.json(prediction);
+  } catch (error) {
+    console.error('Prediction failed:', error);
     return NextResponse.json({error: 'Prediction failed'}, {status: 500});
   }
-
-  return NextResponse.json(prediction);
 }

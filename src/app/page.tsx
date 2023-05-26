@@ -2,7 +2,6 @@
 
 import {ChangeEvent, useState} from 'react';
 import Image from 'next/image';
-import {Prediction} from 'replicate';
 import {v4 as uuidv4} from 'uuid';
 import {
   MAX_FILE_SIZE_BYTES,
@@ -16,7 +15,6 @@ export default function Home() {
   const [imageData, setImageData] = useState<
     {id: string; url: string; size: number}[]
   >([]);
-  const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [error, setError] = useState('');
   const [conversions, setConversions] = useState<ExtendedPrediction[]>([]);
 
@@ -25,7 +23,6 @@ export default function Home() {
       const file = event.target.files?.[0];
       if (!file) return;
 
-      // Validate file size
       if (file.size > MAX_FILE_SIZE_BYTES) {
         setError('File size exceeds the maximum allowed limit.');
         return;
@@ -39,7 +36,6 @@ export default function Home() {
         reader.onerror = () => reject(reader.error);
       });
 
-      // Step 1: Upload image to Cloudinary
       const imageProperties = await uploadImageToCloudinary(base64Image);
       const {url, bytes} = imageProperties;
       const imageId = uuidv4();
@@ -48,10 +44,8 @@ export default function Home() {
         {id: imageId, url, size: bytes},
       ]);
 
-      // Step 2: Initiate conversion and prediction with the Cloudinary image URL
       const result = await sendPNGForPrediction(url);
 
-      // Set the prediction state
       const extendedResult = {
         ...result,
         imageId,
@@ -59,10 +53,7 @@ export default function Home() {
         imageSize: imageProperties.bytes,
       };
 
-      // Update the conversions array
       setConversions(prevConversions => [...prevConversions, extendedResult]);
-
-      setPrediction(result);
     } catch (error) {
       setError((error as Error).message);
     }
@@ -72,7 +63,6 @@ export default function Home() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file size
     if (file.size > MAX_FILE_SIZE_BYTES) {
       setError('File size exceeds the maximum allowed limit.');
       return;
@@ -85,7 +75,6 @@ export default function Home() {
         const svgDataUrl = e.target?.result;
 
         try {
-          // Upload SVG image to Cloudinary
           const imageProperties = await uploadImageToCloudinary(
             svgDataUrl as string,
           );
@@ -99,7 +88,6 @@ export default function Home() {
 
           await convertAndPredict(
             url,
-            setPrediction,
             setConversions,
             imageProperties,
             imageId,
@@ -113,28 +101,33 @@ export default function Home() {
     }
   };
 
-  console.log(conversions, 'saio');
-  console.log(imageData, 'imggg');
-
   return (
     <>
-      <form className="px-6 py-10">
-        <h1>Upload image below</h1>
-        <input
-          type="file"
-          accept="image/png, image/jpeg"
-          onChange={handleUpload}
-        />
+      <form>
+        <div>
+          <h1>Upload image below</h1>
+          <input
+            type="file"
+            accept="image/png, image/jpeg"
+            onChange={handleUpload}
+          />
+        </div>
         {error ? <div>{error}</div> : null}
-        <p>SVG</p>
-        <input type="file" accept="image/svg+xml" onChange={handleFileChange} />
+        <div className="mt-2">
+          <p>SVG</p>
+          <input
+            type="file"
+            accept="image/svg+xml"
+            onChange={handleFileChange}
+          />
+        </div>
       </form>
 
       {imageData.map(({id, url, size}) => {
         const conversion = conversions.find(conv => conv.imageId === id);
         return (
-          <div key={id}>
-            <Image alt="Uploaded image" src={url} width={56} height={56} />
+          <div className="mt-6" key={id}>
+            <Image alt="Uploaded image" src={url} width={48} height={48} />
             <p>Size: {Math.round(size / 1000)} kb</p>
             {conversion && conversion.status === 'succeeded' ? (
               <p>
