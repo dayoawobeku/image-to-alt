@@ -113,7 +113,8 @@ export default function Home() {
 
   return (
     <>
-      <form>
+      <h1 className="text-3xl">Generate alt texts for your images!</h1>
+      <form className="mt-8">
         <div>
           <h1>Upload image below</h1>
           <input
@@ -175,11 +176,11 @@ export default function Home() {
             }}
             aria-label="Download CSV"
             title="Download CSV"
-            disabled={conversions.length < 5}
+            disabled={conversions.length < 3}
           >
             Download CSV
           </button>
-          {conversions.length < 5 ? (
+          {conversions.length < 3 ? (
             <p className="mt-2 text-sm">
               Upload up to 5 images to download as CSV
             </p>
