@@ -6,6 +6,7 @@ import {v4 as uuidv4} from 'uuid';
 import {
   MAX_FILE_SIZE_BYTES,
   convertAndPredict,
+  convertToCSV,
   sendPNGForPrediction,
   uploadImageToCloudinary,
 } from './constants';
@@ -17,6 +18,7 @@ export default function Home() {
   >([]);
   const [error, setError] = useState('');
   const [conversions, setConversions] = useState<ExtendedPrediction[]>([]);
+  const [csvData, setCSVData] = useState('');
 
   const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     try {
@@ -51,9 +53,15 @@ export default function Home() {
         imageId,
         image: imageProperties.url,
         imageSize: imageProperties.bytes,
+        fileName: file.name,
       };
 
-      setConversions(prevConversions => [...prevConversions, extendedResult]);
+      setConversions(prevConversions => {
+        const updatedConversions = [...prevConversions, extendedResult];
+        const csv = convertToCSV(updatedConversions);
+        setCSVData(csv);
+        return updatedConversions;
+      });
     } catch (error) {
       setError((error as Error).message);
     }
@@ -91,6 +99,8 @@ export default function Home() {
             setConversions,
             imageProperties,
             imageId,
+            file as File,
+            setCSVData,
           );
         } catch (error) {
           console.error('Image upload to Cloudinary failed:', error);
@@ -141,6 +151,41 @@ export default function Home() {
           </div>
         );
       })}
+
+      {csvData ? (
+        <>
+          <button
+            className="mt-8 bg-purple-700 p-2 text-white disabled:bg-transparent disabled:text-gray-500 disabled:outline disabled:outline-1 disabled:outline-gray-500"
+            onClick={() => {
+              const csvDataEncoded = encodeURIComponent(csvData);
+              const link = document.createElement('a');
+              link.href = `data:text/csv;charset=utf-8,${csvDataEncoded}`;
+              link.download = 'conversions.csv';
+              link.click();
+            }}
+            onKeyDown={event => {
+              if (event.keyCode === 13 || event.keyCode === 32) {
+                event.preventDefault();
+                const csvDataEncoded = encodeURIComponent(csvData);
+                const link = document.createElement('a');
+                link.href = `data:text/csv;charset=utf-8,${csvDataEncoded}`;
+                link.download = 'conversions.csv';
+                link.click();
+              }
+            }}
+            aria-label="Download CSV"
+            title="Download CSV"
+            disabled={conversions.length < 5}
+          >
+            Download CSV
+          </button>
+          {conversions.length < 5 ? (
+            <p className="mt-2 text-sm">
+              Upload up to 5 images to download as CSV
+            </p>
+          ) : null}
+        </>
+      ) : null}
     </>
   );
 }

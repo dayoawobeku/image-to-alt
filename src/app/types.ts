@@ -3,7 +3,8 @@ import {Prediction} from 'replicate';
 export interface ExtendedPrediction extends Prediction {
   image?: string;
   imageSize?: number;
-  imageId?: string
+  imageId?: string;
+  fileName?: string;
 }
 
 export interface PredictionInput {

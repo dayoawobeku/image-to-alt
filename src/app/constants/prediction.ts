@@ -1,5 +1,6 @@
 import {SetStateAction} from 'react';
 import {ExtendedPrediction, ImageProperties, Task} from '../types';
+import {convertToCSV} from './csv';
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
@@ -54,6 +55,8 @@ const convertAndPredict = async (
   setConversions: (value: SetStateAction<ExtendedPrediction[]>) => void,
   imageProperties: ImageProperties,
   imageId: string,
+  file: globalThis.File,
+  setCSVData: (value: SetStateAction<string>) => void,
 ): Promise<void> => {
   try {
     const response = await fetch('/api/convert-svg-to-png', {
@@ -86,9 +89,15 @@ const convertAndPredict = async (
       imageId,
       image: imageProperties.url,
       imageSize: imageProperties.bytes,
+      fileName: file.name,
     };
 
-    setConversions(prevConversions => [...prevConversions, extendedResult]);
+    setConversions(prevConversions => {
+      const updatedConversions = [...prevConversions, extendedResult];
+      const csv = convertToCSV(updatedConversions);
+      setCSVData(csv);
+      return updatedConversions;
+    });
   } catch (error) {
     console.error('Conversion and prediction request failed:', error);
   }

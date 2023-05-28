@@ -10,6 +10,7 @@ import {
   UPLOAD_PRESET,
   uploadImageToCloudinary,
 } from './cloudinary';
+import {convertToCSV} from './csv'
 
 export {
   CLOUDINARY_UPLOAD_URL,
@@ -20,4 +21,5 @@ export {
   sendPNGForPrediction,
   convertAndPredict,
   sleep,
+  convertToCSV
 };
