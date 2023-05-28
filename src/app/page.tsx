@@ -182,7 +182,7 @@ export default function Home() {
           </button>
           {conversions.length < 3 ? (
             <p className="mt-2 text-sm">
-              Upload up to 5 images to download as CSV
+              Upload up to 3 images to download as CSV
             </p>
           ) : null}
         </>
